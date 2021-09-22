@@ -64,7 +64,6 @@ public class RBSChooser2 {
             rbss.add(entry);
         }
     }
-    //Questions: why is it giving invalid file err? where do we get the description from?
 
     /**
      * Provided an ORF of sequence 'cds', this computes the best ribosome
@@ -76,11 +75,50 @@ public class RBSChooser2 {
      * @param ignores The list of RBS's to exclude
      * @return
      * @throws Exception
+     * @author milo scola
     .     */
     public RBSOption run(String cds, Set<RBSOption> ignores) throws Exception {
-        //TODO:  Fill in
-
-        return null;
+        if (cds.isEmpty()) {
+            throw new IllegalAccessException("coding sequence is empty");
+        }
+        String first6AA = Trans.run(cds.substring(0, 30));
+        ArrayList<RBSOption> curbest = new ArrayList<>();
+        //make list of options with lowest #of hairpins
+        for (int i = 0; i < rbss.size(); i++) {
+            //ignore all items that are in ignore list
+            if (!ignores.contains(rbss.get(i))) {
+                //if the list is empty add the current item
+                if (curbest.isEmpty()) {
+                    curbest.add(rbss.get(i));
+                    break;
+                }
+                //add rbss option to list if has the same ammount of harpins
+                if (HPCounter.run(rbss.get(i).getRbs() + cds) == HPCounter.run(curbest.get(i) + cds)) {
+                    curbest.add(rbss.get(i));
+                }
+                //if rbss option has less haripins, clear list and add it
+                if (HPCounter.run(rbss.get(i).getRbs() + cds) < HPCounter.run(curbest.get(i) + cds)) {
+                    curbest.clear();
+                    curbest.add(rbss.get(i));
+                }
+            }
+        }
+        if (curbest.isEmpty()) {
+            throw new Exception("no viable RBS options. Try increasing the options in rbss or removing some ignores");
+        }
+        //the best option
+        RBSOption best;
+        best = curbest.get(0);
+        //chooses from remaining options based on AA seq
+        for (int i = 1; i < curbest.size(); i++) {
+            int newDist = CalcEditDist.run(first6AA, curbest.get(i).getFirst6aas());
+            int oldDist = CalcEditDist.run(first6AA, best.getFirst6aas());
+            //if the new dist is less than the old dist this is the new best
+            if (newDist < oldDist) {
+                best = curbest.get(i);
+            }
+        }
+        return best;
     }
 
 
@@ -91,7 +129,7 @@ public class RBSChooser2 {
         //Initiate the chooser
         RBSChooser2 chooser = new RBSChooser2();
         chooser.initiate();
-        /*
+
         //Make the first choice with an empty Set of ignores
         Set<RBSOption> ignores = new HashSet<>();
         RBSOption selected1 = chooser.run(cds, ignores);
@@ -110,6 +148,6 @@ public class RBSChooser2 {
         System.out.println(selected1.toString());
         System.out.println();
         System.out.println("Selected2:\n");
-        System.out.println(selected2.toString()); */
+        System.out.println(selected2.toString());
     }
 }
